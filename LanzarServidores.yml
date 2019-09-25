@@ -1,0 +1,51 @@
+---
+
+- hosts: ServidoresWeb
+  become: true
+  become_method: sudo
+  tasks:
+  - name: Instalar apache en las maquinas virtuales
+    apt: name=apache2 update_cache=yes state=latest
+- hosts: 3.90.43.234
+  become: true
+  tasks:
+  - name: Modificar archivo html del primer servidor
+    copy:
+     src: ./web01/index.html
+     dest: /var/www/html/index.html
+     force: yes  
+- hosts: 54.211.231.8
+  become: true
+  become_method: sudo
+  tasks:
+  - name: Modificar archivo html del segundo servidor
+    copy:
+     src: ./web02/index.html
+     dest: /var/www/html/index.html
+     force: yes    
+- hosts: ServidorHaproxy
+  become: true
+  become_method: sudo  
+  tasks:
+  - name: Instalar haproxy
+    apt: name=haproxy state=present
+  - name: Guardar configuración por defecto
+    command: mv haproxy.cfg haproxy.cfg.orig
+    args:
+      chdir: /etc/haproxy
+  - name: Usar configuracion proporcionada de haproxy
+    template:
+     src: ./haproxy.cfg
+     dest: /etc/haproxy/haproxy.cfg
+     mode: 0644
+  - name: Verificar que HAproxy corra correctamente
+    systemd:
+     name: haproxy
+     enabled: yes
+     state: started
+  - name: Reiniciar HAproxy con el archivo configuración editado
+    systemd: 
+     name: haproxy
+     enabled: yes
+     state: restarted
+
